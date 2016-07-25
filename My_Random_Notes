@@ -1,0 +1,504 @@
+My Random Notes
+
+bash binary convert native
+
+
+Base32
+One might assume that Base32 is the numbers 0-9 and then the first 22 letters of the alphabet (up to V).
+Remember when we mentioned the caveat above? This is the caveat: the most commonly accepted Base32 definition is actually an encoding that starts with the first 26 letters of the alphabet and ends with the numbers 2-7. This is defined in The Internet Engineering Task Force's Request for Comments (RCFC) 4648, which also defines Base16 and Base64. Note, the difference is that the encoding for 0 is A, not 0. To encode a string in Base32, the following instructions happen.
+First, the string to be encoded is split into 5 byte blocks (40 bits in binary). Letters are represented by 8 bit blocks in ASCII (the standard for computers), so for every 5 letters, there are 40 bits. (This 8-bit definition for each letter allows for a total of 255 characters in ASCII.)
+Next, divide these 40 bits into 8 five-bit blocks; so, for every 5 letters, there are 8 blocks to encode in base32. Map each of these blocks to a 5-bit character mapping in the Base32 alphabet. For instance, if the five bit block is 00010 (or decimal 2), the mapped character is the letter, c. If the five bit block is 01010 (decimal 10), the mapped character is the letter K.
+Let's apply these steps to the string "yessir".
+Character
+ASCII Decimal
+8-bit ASCII Binary
+y
+89
+01111001
+e
+101
+01100101
+s
+115
+01110011
+s
+115
+01110011
+i
+105
+01101001
+r
+114
+01110010
+Let's take the binary representations and concatenate them now, splitting them into 5-bit groups
+1
+2
+01111   00101	10010   10111   00110   11100   11011   01001
+01110   010(00)   null   null	null	null	null	null
+A note on the above: because the specification defines that the encoding must be done in chunks of 8 5-bit pieces, we have to pad with 0 if the number of bits isn't divisble by 5 (hence the 010(00) on the second line) and with = if the number of chunks isn't divisible by 8. The "null" values will be replaced by the padding character, "=".
+Each of these 5-bit binary numbers map to a character in the 32-bit alphabet; specifically, the output for yessir would be PFSXG43JOI======
+A similar process is followed for Base64. There are a few fundamental differences between Base32 and Base64. Base64 includes the letters A-Z, a-z, numbers 0-9, and the symbols + and /. As mentioned previously, the "=" symbol is used for padding. The differences are mainly that all letters are case-sensitive, and all digits are used (instead of the subset 2-7). The symbols + and / are also added.
+The Base64 encoding process takes 24-bit strings (3 letters) and breaks them into four 6-bit chunks, mapping the resulting binary number to the Base64 alphabet. So, lets take a look at our previous example, the string "yessir".
+1
+2
+3
+8-bit binary: 01111001 01100101 01110011 01110011 01101001 01110010
+6-bit chunks: 011110 010110 010101 110011 011100 110110 100101 110010
+Base64:   	eWVzc2ly
+There are a few important things to note. First, Base64 is case-sensitive. Second, because the number of bits (48) was divisible by 6, no bit-padding was necessary. The number of 6-bit chunks was divisible by four as well (which also means that the number of input characters was divisible by 3), so no null ("=") padding was necessary either.
+A Summary of Base16, Base32, and Base64
+These binary-friendly bases are leveraged throughout programming structures.
+These binary-friendly bases are leveraged throughout programming structures. Binary data is encoded in these bases to ensure the fidelity of the transfer and block against errors that might rise out of accidental un-encoded binary data transfer. They rely on standards-based tables of characters, and are only guaranteed to work if both the encoder and decoder use the same table; for instance, there are widely accepted modified versions of base32, including one by Douglas Crockford that changes some of the acceptable characters, including the letter "u" as to avoid unintentional obscenity.
+source - http://code.tutsplus.com/tutorials/base-what-a-practical-introduction-to-base-encoding--net-27590
+
+
+
+BASH - 5 letter groups - ideal for crypto output
+
+# alphas & Nums
+openssl rand -base64 2048 | grep -o '[[:alnum:]]' | tr '[:lower:]' '[:upper:]' | head -n 520 | tr '\012' ' ' | tr -d ' ' | fold -w 5 | tr '\012' ' ' |
+fold -s -w 80; echo    
+
+
+openssl rand -base64 2048 | grep -o '[[:alnum:]]' | tr '[:lower:]' '[:upper:]' | head -n 1024 | tr '\012' ' ' | tr -d ' ' | fold -w 5 | tr '\012' ' ' |
+fold -s -w 80; echo  
+
+GZEQM IBIWP OK8CK ...
+
+so 
+
+GZEQM  
+
+
+
+toBinary(){
+    local n bit
+    for (( n=$1 ; n>0 ; n >>= 1 )); do  bit="$(( n&1 ))$bit"; done
+    printf "%s\n" "$bit"
+}
+
+toBinary 304
+100110000
+
+
+alternative
+
+d2b() { local bits= local num=$1 while [[ $num != 0 ]] do if (( $num & 1 )) then bits="1$bits" else bits="0$bits" fi let num=$(($num >> 1)) done echo ${bits:=0} } for n in $* do d2b $n done
+
+-- but this only deals with values so toBinary abc fails
+
+
+Convert decimal to binary with bash builtin commands (range 0 to 255):
+toBinary=({0..1}{0..1}{0..1}{0..1}{0..1}{0..1}{0..1}{0..1}) 
+
+echo ${toBinary[7]}
+
+00000111
+
+better..
+ # echo {0..9} {A..H} {J..K} {M..N} {P..T} {V..Z}
+  declare -a base32
+  base32=(0 1 2 3 4 5 6 7 8 9 A B C D E F G H J K M N P Q R S T V W X Y Z )
+  echo ${base32[17]}
+
+# Associative Array
+declare -A aa 
+aa=([red]=1 [orange]=2 [green]=3) 
+echo ${myArray['orange']}
+
+
+
+
+
+
+If you want to take a string and get the ascii code for each character in the string using a bash script then use the following function:
+str2ascii () {
+str=$1;
+list=($(echo $str|sed 's/\(.\)/\1 /g'));
+ascii_result='';
+for element in "${list[@]}"; do
+ascii_result+=$(printf "%d," "'$element");
+done
+echo "${ascii_result%?}";
+}
+The following is an example of how the function above is used:
+str2ascii "ABCDEF";
+This prints out the result:    65,66,67,68,69,70
+str2ascii "GZEQM";  => 71,90,69,81,77
+
+echo ${toBinary[71]};echo ${toBinary[90]};echo ${toBinary[69]};echo ${toBinary[81]};echo ${toBinary[77]}
+
+    G        Z        E        Q        M             # String in       0
+
+    71       90       69       81       77            # ASCII dec       1
+
+01000111 01011010 01000101 01010001 01001101      # 5 x 8 = 40 bits     2
+12345678 12345678 12345678 12345678 12345678
+1        2        3        4        5             
+
+echo "obase=16; ibase=2; 01000" | bc  #1
+echo "obase=16; ibase=2; 11101" | bc  #2
+echo "obase=16; ibase=2; 01101" | bc  #3
+echo "obase=16; ibase=2; 00100" | bc  #4 
+echo "obase=16; ibase=2; 10011" | bc  #5
+echo "obase=16; ibase=2; 01010" | bc  #6
+echo "obase=16; ibase=2; 01000" | bc  #7
+echo "obase=16; ibase=2; 01101" | bc  #8
+ 
+1     2     3     4     5     6     7     8            
+12345 12345 12345 12345 12345 12345 12345 12345
+01000 11101 01101 00100 01010 10100 01010 01101   # 8 x 5 = 40 bits   3
+  08    29    13     04    10    20    10    13   # Decimal
+
+  8      X     D      4     A     M     A     D   # Base 32           4
+  
+as per - http://www.crockford.com/wrmg/base32.html
+                                                                                                                                     
+
+Also (not Native)  ...
+var="304"; echo "obase=2; $var" | bc
+100110000
+
+echo "obase=2; ibase=16; A" | bc 
+1010
+ 
+echo "obase=32; ibase=2; 1000" | bc 
+A
+
+
+
+chr() {
+ [ "$1" -lt 256 ] || return 1 printf "\\$(printf '%03o' "$1")" 
+} 
+
+ord() {
+ LC_CTYPE=C printf '%d' "'$1" 
+}
+
+
+for j in C4 97 91 8C 85 87 C4 90 8C 8D 9A 83 81; do         
+BIN=$(echo "obase=2; ibase=16; $j" | bc );         
+echo $BIN; 
+done | grep 1
+
+11000100
+10010111
+10010001
+
+ANY 2 ANY in BASH - https://boubakr92.wordpress.com/2012/12/14/numeral-systems-conversion-in-bash/
+
+
+
+for x in {0..9} {a..z} {A..Z} @ _; do
+    echo $x
+    n="64#$x"
+    echo "$n=$((n))"
+done
+
+better..
+
+ # echo {0..9} {A..H} {J..K} {M..N} {P..T} {V..Z}
+
+declare -a base32
+base32=(0 1 2 3 4 5 6 7 8 9 A B C D E F G H J K M N P Q R S T V W X Y Z )
+
+
+# I've gotten a little further ...  
+#
+toBinary=({0..1}{0..1}{0..1}{0..1}{0..1}) 
+#
+i=0
+for k in {0..9} {A..H} {J..K} {M..N} {P..T} {V..Z}; do
+
+    echo "$i ${toBinary[i]} $k"
+
+    ((i++))
+done
+#
+
+0 00000 0
+1 00001 1
+2 00010 2
+3 00011 3
+4 00100 4
+5 00101 5
+6 00110 6
+7 00111 7
+8 01000 8
+9 01001 9
+10 01010 A
+11 01011 B
+12 01100 C
+13 01101 D
+14 01110 E
+15 01111 F
+16 10000 G
+17 10001 H
+18 10010 J
+19 10011 K
+20 10100 M
+21 10101 N
+22 10110 P
+23 10111 Q
+24 11000 R
+25 11001 S
+26 11010 T
+27 11011 V
+28 11100 W
+29 11101 X
+30 11110 Y
+31 11111 Z
+
+
+ASCII 2 BASE32 conversion
+
+Starting String = 'GZEQM'
+
+# step 1
+str2ascii () {
+  str=$1;
+  list=($(echo $str|sed 's/\(.\)/\1 /g'));
+  ascii_result='';
+
+  for element in "${list[@]}"; do
+    ascii_result+=$(printf "%d," "'$element");
+    done
+  echo "${ascii_result%?}";
+}
+
+str2ascii GZEQM
+                71, 90, 69, 81, 77
+
+# step 2
+declare -a ascii2bin
+ascii2bin=(
+        00000000 00000001 00000010 00000011 00000100 00000101 00000110 00000111
+        00001000 00001001 00001010 00001011 00001100 00001101 00001110 00001111
+        00010000 00010001 00010010 00010011 00010100 00010101 00010110 00010111
+        00011000 00011001 00011010 00011011 00011100 00011101 00011110 00011111
+        00100000 00100001 00100010 00100011 00100100 00100101 00100110 00100111
+        00101000 00101001 00101010 00101011 00101100 00101101 00101110 00101111
+        00110000 00110001 00110010 00110011 00110100 00110101 00110110 00110111
+        00111000 00111001 00111010 00111011 00111100 00111101 00111110 00111111
+        01000000 01000001 01000010 01000011 01000100 01000101 01000110 01000111
+        01001000 01001001 01001010 01001011 01001100 01001101 01001110 01001111
+        01010000 01010001 01010010 01010011 01010100 01010101 01010110 01010111
+        01011000 01011001 01011010 01011011 01011100 01011101 01011110 01011111
+        01100000 01100001 01100010 01100011 01100100 01100101 01100110 01100111
+        01101000 01101001 01101010 01101011 01101100 01101101 01101110 01101111
+        01110000 01110001 01110010 01110011 01110100 01110101 01110110 01110111
+        01111000 01111001 01111010 01111011 01111100 01111101 01111110 01111111
+        10000000 10000001 10000010 10000011 10000100 10000101 10000110 10000111
+        10001000 10001001 10001010 10001011 10001100 10001101 10001110 10001111
+        10010000 10010001 10010010 10010011 10010100 10010101 10010110 10010111
+        10011000 10011001 10011010 10011011 10011100 10011101 10011110 10011111
+        10100000 10100001 10100010 10100011 10100100 10100101 10100110 10100111
+        10101000 10101001 10101010 10101011 10101100 10101101 10101110 10101111
+        10110000 10110001 10110010 10110011 10110100 10110101 10110110 10110111
+        10111000 10111001 10111010 10111011 10111100 10111101 10111110 10111111
+        11000000 11000001 11000010 11000011 11000100 11000101 11000110 11000111
+        11001000 11001001 11001010 11001011 11001100 11001101 11001110 11001111
+        11010000 11010001 11010010 11010011 11010100 11010101 11010110 11010111
+        11011000 11011001 11011010 11011011 11011100 11011101 11011110 11011111
+        11100000 11100001 11100010 11100011 11100100 11100101 11100110 11100111
+        11101000 11101001 11101010 11101011 11101100 11101101 11101110 11101111
+        11110000 11110001 11110010 11110011 11110100 11110101 11110110 11110111
+        11111000 11111001 11111010 11111011 11111100 11111101 11111110 11111111
+      )
+
+# 71,90,69,81,77                                                  # from step 1
+
+a1=$(echo ${ascii2bin[71]})
+a2=$(echo ${ascii2bin[90]})
+a3=$(echo ${ascii2bin[69]})
+a4=$(echo ${ascii2bin[81]})
+a5=$(echo ${ascii2bin[77]})
+
+# 01000111 01011010 01000101 01010001 01001101               # Values from Step 2
+
+echo ${a1}${a2}${a3}${a4}${a5}
+
+# concat 5 x 8 bits into one 40 bit string
+export val=$(echo ${a1}${a2}${a3}${a4}${a5})
+
+## step 3 - divide 40 bits into 8 x 5
+
+export val="0100011101011010010001010101000101001101"
+
+b1=$(echo ${val:0:5})
+b2=$(echo ${val:5:5})
+b3=$(echo ${val:10:5})
+b4=$(echo ${val:15:5})
+b5=$(echo ${val:20:5})
+b6=$(echo ${val:25:5})
+b7=$(echo ${val:30:5})
+b8=$(echo ${val:35:5})
+
+# 01000 11101 01101 00100 01010 10100 01010 01101
+
+# step 4
+declare -a bin2base32
+bin2base32=(
+        [00000]=0 [00001]=1 [00010]=2 [00011]=3
+        [00100]=4 [00101]=5 [00110]=6 [00111]=7
+        [01000]=8 [01001]=9 [01010]=A [01011]=B
+        [01100]=C [01101]=D [01110]=E [01111]=F
+        [10000]=G [10001]=G [10010]=H [10011]=J
+        [10100]=K [10101]=M [10110]=N [10111]=P
+        [11000]=Q [11001]=R [11010]=S [11011]=T
+        [11100]=V [11101]=W [11110]=X [11111]=Y
+      )
+
+# 01000 11101 01101 00100 01010 10100 01010 01101                 # from Step 3
+
+# split 40 bit string into 8 x 5 groups
+
+echo ${bin2base32[01000]}
+echo ${bin2base32[11101]}
+echo ${bin2base32[01101]}
+echo ${bin2base32[00100]}
+echo ${bin2base32[01010]}
+echo ${bin2base32[10100]}
+echo ${bin2base32[01010]}
+echo ${bin2base32[01101]}
+
+=> Answer in base32
+
+   8WD4  AKAD
+
+   for b32 in $b1 $b2 $b3 $b4 $b5 $b6 $b7 $b8 ; do
+      echo ${bin2base32[$b32]}
+  #   echo bin2base32[$b32] | tr '[|]' ' ' | awk '{print $2}'
+   done
+
+
+
+The Base32 encoding process is to:
+Divid the input bytes stream into blocks of 5 bytes.
+Divid 40 bits of each 5-byte block into 8 groups of 5 bits.
+Map each group of 5 bits to 1 printable character, based on the 5-bit value using the Base32 character set map.
+If the last 5-byte block has only 1 byte of input data, pad 4 bytes of zero (\x0000). After encoding it as a normal block, override the last 6 characters with 6 equal signs (======).
+If the last 5-byte block has only 2 bytes of input data, pad 3 bytes of zero (\x0000). After encoding it as a normal block, override the last 4 characters with 4 equal signs (====).
+If the last 5-byte block has only 3 bytes of input data, pad 2 bytes of zero (\x0000). After encoding it as a normal block, override the last 3 characters with 3 equal signs (===).
+If the last 5-byte block has only 4 bytes of input data, pad 1 byte of zero (\x0000). After encoding it as a normal block, override the last 1 characters with 1 equal sign (=).
+Carriage return (\r) and new line (\n) are inserted into the output character stream. They will be ignored by the decoding process.
+
+source - http://www.herongyang.com/Encoding/Base32-Encoding-Algorithm.html
+
+
+
+Any to decimal conversion
+Now to come to the point. Consider the following construct.
+echo $((2#1010))
+This will print out 10 , that is the decimal equivalent of the binary (base 2) 1010 . The general construct is:
+echo $((base#number))
+Where the base is the value of the base in which the number is in. The value of base can be from 2 upto 64. After 10 base first lower case characters are used to represent additional base digits, when the base value is greater than 32 upper case characters are used. In the case of base value 63 and 64, the 63rd and 64th digit of the base are the @ and _symbols respectively.
+Also to represent hexadecimal you can start the hex number by 0x or 0X, and to denote an octal number you can start the number with 0 as normal. Like
+echo $((0xa))
+echo $((012))
+Both of these will print out 10, which is the decimal equivalent of 0xa in hex and 012 in octal.
+The same can be achieved by
+echo $((16#a))
+echo $((8#12))
+At last for completeness i should also add that without any of the 0x, or 0 appended or the base#number format, plain integers are considered to be in decimal, ie. in base 10 by default.
+Although you can only convert any integer base (within 2 and 64, both inclusive) to decimal, and not other base, this can come in handy.
+References
+man bash ARITHMETIC EVALUATION section
+
+
+working encoder
+
+#!/usr/bin/env bash
+
+# base32 - pure bash base32 encoder
+#
+    # String to ascii
+    str2ascii () {
+      str=$1;
+      list=($(echo $str|sed 's/\(.\)/\1 /g'));
+      ascii_result='';
+
+      for element in "${list[@]}"; do
+        ascii_result+=$(printf "%d " "'$element");
+        done
+      echo "${ascii_result%?}";
+    }
+
+    # Array ascii2bin
+    declare -a ascii2bin
+    ascii2bin=(
+        00000000 00000001 00000010 00000011 00000100 00000101 00000110 00000111
+        00001000 00001001 00001010 00001011 00001100 00001101 00001110 00001111
+        00010000 00010001 00010010 00010011 00010100 00010101 00010110 00010111
+        00011000 00011001 00011010 00011011 00011100 00011101 00011110 00011111
+        00100000 00100001 00100010 00100011 00100100 00100101 00100110 00100111
+        00101000 00101001 00101010 00101011 00101100 00101101 00101110 00101111
+        00110000 00110001 00110010 00110011 00110100 00110101 00110110 00110111
+        00111000 00111001 00111010 00111011 00111100 00111101 00111110 00111111
+        01000000 01000001 01000010 01000011 01000100 01000101 01000110 01000111
+        01001000 01001001 01001010 01001011 01001100 01001101 01001110 01001111
+        01010000 01010001 01010010 01010011 01010100 01010101 01010110 01010111
+        01011000 01011001 01011010 01011011 01011100 01011101 01011110 01011111
+        01100000 01100001 01100010 01100011 01100100 01100101 01100110 01100111
+        01101000 01101001 01101010 01101011 01101100 01101101 01101110 01101111
+        01110000 01110001 01110010 01110011 01110100 01110101 01110110 01110111
+        01111000 01111001 01111010 01111011 01111100 01111101 01111110 01111111
+        10000000 10000001 10000010 10000011 10000100 10000101 10000110 10000111
+        10001000 10001001 10001010 10001011 10001100 10001101 10001110 10001111
+        10010000 10010001 10010010 10010011 10010100 10010101 10010110 10010111
+        10011000 10011001 10011010 10011011 10011100 10011101 10011110 10011111
+        10100000 10100001 10100010 10100011 10100100 10100101 10100110 10100111
+        10101000 10101001 10101010 10101011 10101100 10101101 10101110 10101111
+        10110000 10110001 10110010 10110011 10110100 10110101 10110110 10110111
+        10111000 10111001 10111010 10111011 10111100 10111101 10111110 10111111
+        11000000 11000001 11000010 11000011 11000100 11000101 11000110 11000111
+        11001000 11001001 11001010 11001011 11001100 11001101 11001110 11001111
+        11010000 11010001 11010010 11010011 11010100 11010101 11010110 11010111
+        11011000 11011001 11011010 11011011 11011100 11011101 11011110 11011111
+        11100000 11100001 11100010 11100011 11100100 11100101 11100110 11100111
+        11101000 11101001 11101010 11101011 11101100 11101101 11101110 11101111
+        11110000 11110001 11110010 11110011 11110100 11110101 11110110 11110111
+        11111000 11111001 11111010 11111011 11111100 11111101 11111110 11111111
+      )
+
+      # Associtive Arrary given 5 bit bin returns base32
+      declare -A bin2base32
+      bin2base32=(
+              [00000]=0 [00001]=1 [00010]=2 [00011]=3
+              [00100]=4 [00101]=5 [00110]=6 [00111]=7
+              [01000]=8 [01001]=9 [01010]=A [01011]=B
+              [01100]=C [01101]=D [01110]=E [01111]=F
+              [10000]=G [10001]=H [10010]=J [10011]=K
+              [10100]=M [10101]=N [10110]=P [10111]=Q
+              [11000]=R [11001]=S [11010]=T [11011]=V
+              [11100]=W [11101]=X [11110]=Y [11111]=Z
+            )
+      # as per http://www.crockford.com/wrmg/base32.html
+
+# Must Provide Input $1
+out=$(str2ascii $1)
+
+#
+val=$(for char in $out; do
+   echo ${ascii2bin[char]}
+done | tr '\012' ' ' | tr -d ' ')
+
+#
+b1=$(echo ${val:0:5}); b2=$(echo ${val:5:5})
+b3=$(echo ${val:10:5}); b4=$(echo ${val:15:5})
+b5=$(echo ${val:20:5}); b6=$(echo ${val:25:5})
+b7=$(echo ${val:30:5}); b8=$(echo ${val:35:5})
+
+#
+for b32 in $b1 $b2 $b3 $b4 $b5 $b6 $b7 $b8 ; do
+   echo ${bin2base32[$b32]}
+done  | tr -s ' ' | tr '\012' ' '
+echo
+
+# => Answer in base32
+# -- fin # https://emn178.github.io/online-tools/base32_encode.html
+
+
+
+
+
